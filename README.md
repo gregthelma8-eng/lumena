@@ -118,7 +118,7 @@ pnpm --filter @lumen/server dev
 
 | Package | Description |
 | --- | --- |
-| **`@lumen/core`** | `StellarClient`, `createSponsoredAccount`, `setupMultisig`, `buildFeeBump`, `pathPayment`, `KeyManager`, `Wallet` |
+| **`@lumen/core`** | `StellarClient`, `createSponsoredAccount`, `setupMultisig`, `buildTransaction`, `buildFeeBump`, `pathPayment`, `KeyManager` (including stored-key deletion), `Wallet` |
 | **`@lumen/server`** | `CosignerService`, `FeeSponsorService`, `PolicyEngine`, Express API |
 | **`@lumen/web-sdk`** | `LumenClient`: `createWallet`, `getBalance`, `sendPayment` |
 | **`@lumen/types`** | Shared TypeScript interfaces |
