@@ -6,7 +6,7 @@ Server-side daemon and HTTP API service for the Lumen non-custodial wallet ecosy
 
 ## Features
 
-- **Co-Signing Engine**: 2-of-2 multisig transaction validation with configurable spending policies (spend limits, velocity tracking, destination allowlists).
+- **Co-Signing Engine**: 2-of-2 multisig transaction validation with configurable spending policies (spend limits, velocity tracking, destination and asset allowlists).
 - **Fee Sponsorship**: Wraps approved user transactions in Stellar fee-bump envelopes so end users pay zero XLM transaction fees.
 - **Transaction Webhooks**: Notifies subscribed endpoints of successful fee-bump submissions with the `transaction.fee_bump.submitted` event.
 - **Sponsored Account Creation**: Creates new Stellar keypairs and funds initial account reserves.
@@ -97,6 +97,9 @@ pnpm --filter @lumen/server clean
 | `POST` | `/policy` | Creates a policy for a wallet |
 | `PUT` | `/policy/:walletId` | Replaces rules on an existing wallet policy |
 | `DELETE` | `/policy/:walletId` | Deletes the policy specification for a wallet |
+| `POST` | `/webhooks` | Registers a webhook subscription |
+| `GET` | `/webhooks` | Lists webhook subscriptions without their secrets |
+| `DELETE` | `/webhooks/:id` | Removes a webhook subscription |
 | `GET` | `/webhooks/deliveries` | Reads persistent webhook delivery history |
 | `GET` | `/status` | Server health check and fee-sponsor balance |
 | `GET` | `/.well-known/stellar.toml` | Serves SEP-10 discovery TOML |
@@ -109,6 +112,20 @@ Webhook delivery outcomes are appended to `data/webhook-deliveries.jsonl` by def
 `LUMEN_WEBHOOK_DELIVERY_LOG_PATH` to choose another location. Each dispatcher exposes
 `getDeliveryLog()` and the `GET /webhooks/deliveries` endpoint read persisted history,
 including successful and failed attempts; records do not include webhook secrets.
+
+### Asset Allowlist Policy
+
+An `asset_allowlist` rule limits payment and path-payment operations to the listed assets.
+Native XLM is identified as `native`; credit assets must include both their code and issuer
+because the issuer is part of a Stellar asset's identity. Path payments are checked against
+both their send and destination assets.
+
+```json
+{
+  "type": "asset_allowlist",
+  "assets": ["native", "USDC:GISSUER..."]
+}
+```
 
 ---
 

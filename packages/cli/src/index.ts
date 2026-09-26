@@ -6,10 +6,11 @@ const program = new Command();
 
 program
   .name("lumen")
-  .description("Administrative CLI for managing Lumen wallets, policies, sponsor balances, and cosigning")
+  .description(
+    "Administrative CLI for managing Lumen wallets, policies, sponsor balances, and cosigning",
+  )
   .version("0.1.0")
-  .option("--json", "Output machine-readable JSON instead of human-readable text")
-  .passGlobalOptions();
+  .option("--json", "Output machine-readable JSON instead of human-readable text");
 
 const DEFAULT_SERVER_URL = process.env.LUMEN_SERVER_URL || "http://localhost:3000";
 type StellarNetwork = "testnet" | "mainnet" | "local";
@@ -31,6 +32,10 @@ function getStellarNetwork(value: string): StellarNetwork {
   }
 }
 
+function isJsonOutput(): boolean {
+  return program.optsWithGlobals<{ json?: boolean }>().json ?? false;
+}
+
 program
   .command("status")
   .description("Checks server health and sponsor account balance")
@@ -49,7 +54,7 @@ program
         sponsorData = await sponsorRes.json();
       }
 
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify({ health: healthData, sponsor: sponsorData }, null, 2));
       } else {
         console.log(`Connecting to Lumen server at ${options.server}...`);
@@ -61,7 +66,7 @@ program
         }
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error fetching status:", err.message || err);
@@ -83,13 +88,13 @@ policyCmd
         throw new Error(`Failed to fetch policy: HTTP ${res.status}`);
       }
       const policy = await res.json();
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify(policy, null, 2));
       } else {
         console.log("Policy Spec:", JSON.stringify(policy, null, 2));
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error getting policy:", err.message || err);
@@ -122,13 +127,13 @@ policyCmd
       }
 
       const created = await res.json();
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify(created, null, 2));
       } else {
         console.log("Policy set successfully:", JSON.stringify(created, null, 2));
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error setting policy:", err.message || err);
@@ -156,16 +161,147 @@ policyCmd
         throw new Error(`Failed to delete policy: HTTP ${res.status} - ${errText}`);
       }
 
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify({ success: true, walletId }, null, 2));
       } else {
         console.log(`Policy for wallet ${walletId} deleted successfully.`);
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error deleting policy:", err.message || err);
+      }
+      process.exit(1);
+    }
+  });
+
+const webhookCmd = program
+  .command("webhook")
+  .description("Manage webhook subscriptions and deliveries");
+
+webhookCmd
+  .command("create <file>")
+  .description("Register a webhook from a JSON configuration file")
+  .option("-s, --server <url>", "Lumen server URL", DEFAULT_SERVER_URL)
+  .action(async (file, options) => {
+    try {
+      if (!fs.existsSync(file)) {
+        throw new Error(`Webhook configuration file not found: ${file}`);
+      }
+      const config = JSON.parse(fs.readFileSync(file, "utf-8"));
+      const res = await fetch(`${options.server}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to create webhook: HTTP ${res.status} - ${errText}`);
+      }
+
+      const webhook = await res.json();
+      if (isJsonOutput()) {
+        console.log(JSON.stringify(webhook, null, 2));
+      } else {
+        console.log("Webhook created successfully:", JSON.stringify(webhook, null, 2));
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isJsonOutput()) {
+        console.error(JSON.stringify({ error: message }));
+      } else {
+        console.error("Error creating webhook:", message);
+      }
+      process.exit(1);
+    }
+  });
+
+webhookCmd
+  .command("list")
+  .description("List registered webhooks")
+  .option("-s, --server <url>", "Lumen server URL", DEFAULT_SERVER_URL)
+  .action(async (options) => {
+    try {
+      const res = await fetch(`${options.server}/webhooks`);
+      if (!res.ok) {
+        throw new Error(`Failed to list webhooks: HTTP ${res.status}`);
+      }
+
+      const webhooks = await res.json();
+      if (isJsonOutput()) {
+        console.log(JSON.stringify(webhooks, null, 2));
+      } else {
+        console.log("Registered webhooks:", JSON.stringify(webhooks, null, 2));
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isJsonOutput()) {
+        console.error(JSON.stringify({ error: message }));
+      } else {
+        console.error("Error listing webhooks:", message);
+      }
+      process.exit(1);
+    }
+  });
+
+webhookCmd
+  .command("delete <id>")
+  .description("Unregister a webhook")
+  .option("-s, --server <url>", "Lumen server URL", DEFAULT_SERVER_URL)
+  .action(async (id, options) => {
+    try {
+      const res = await fetch(`${options.server}/webhooks/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (res.status === 404) {
+        throw new Error(`Webhook not found: ${id}`);
+      }
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to delete webhook: HTTP ${res.status} - ${errText}`);
+      }
+
+      if (isJsonOutput()) {
+        console.log(JSON.stringify({ success: true, id }, null, 2));
+      } else {
+        console.log(`Webhook ${id} deleted successfully.`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isJsonOutput()) {
+        console.error(JSON.stringify({ error: message }));
+      } else {
+        console.error("Error deleting webhook:", message);
+      }
+      process.exit(1);
+    }
+  });
+
+webhookCmd
+  .command("deliveries")
+  .description("List webhook delivery history")
+  .option("-s, --server <url>", "Lumen server URL", DEFAULT_SERVER_URL)
+  .action(async (options) => {
+    try {
+      const res = await fetch(`${options.server}/webhooks/deliveries`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch webhook deliveries: HTTP ${res.status}`);
+      }
+
+      const deliveries = await res.json();
+      if (isJsonOutput()) {
+        console.log(JSON.stringify(deliveries, null, 2));
+      } else {
+        console.log("Webhook delivery history:", JSON.stringify(deliveries, null, 2));
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isJsonOutput()) {
+        console.error(JSON.stringify({ error: message }));
+      } else {
+        console.error("Error fetching webhook deliveries:", message);
       }
       process.exit(1);
     }
@@ -189,7 +325,7 @@ walletCmd
       }
 
       const result = await res.json();
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify(result, null, 2));
       } else {
         console.log("Wallet created successfully:");
@@ -197,7 +333,7 @@ walletCmd
         console.log("Public Key:", result.publicKey);
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error creating wallet:", err.message || err);
@@ -274,7 +410,7 @@ cosignCmd
         operations: decodedOps,
       };
 
-      if (options.json) {
+      if (isJsonOutput()) {
         console.log(JSON.stringify(output, null, 2));
       } else {
         console.log("Decoded Transaction Details:");
@@ -289,7 +425,7 @@ cosignCmd
         });
       }
     } catch (err: any) {
-      if (options.json) {
+      if (isJsonOutput()) {
         console.error(JSON.stringify({ error: err.message || String(err) }));
       } else {
         console.error("Error decoding transaction XDR:", err.message || err);

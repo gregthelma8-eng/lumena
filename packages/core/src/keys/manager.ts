@@ -9,6 +9,7 @@ export interface StoredKey {
 export interface KeyStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
   key(index: number): string | null;
   readonly length: number;
 }
@@ -23,6 +24,7 @@ function createMemoryStorage(): KeyStorage {
     },
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
     key: (index) => Array.from(values.keys())[index] ?? null,
   };
 }
@@ -71,18 +73,14 @@ export class KeyManager {
     return Keypair.random();
   }
 
-  async deriveFromOAuth(
-    provider: string,
-    token: string,
-    salt?: string
-  ): Promise<Keypair> {
+  async deriveFromOAuth(provider: string, token: string, salt?: string): Promise<Keypair> {
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
       encoder.encode(token),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
 
     const data = encoder.encode(`${provider}:${salt ?? "lumen-derivation"}`);
@@ -102,7 +100,7 @@ export class KeyManager {
       encoder.encode(passphrase),
       { name: "PBKDF2" },
       false,
-      ["deriveKey"]
+      ["deriveKey"],
     );
 
     const aesKey = await crypto.subtle.deriveKey(
@@ -115,14 +113,14 @@ export class KeyManager {
       keyMaterial,
       { name: "AES-GCM", length: 256 },
       false,
-      ["encrypt"]
+      ["encrypt"],
     );
 
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv: iv as BufferSource },
       aesKey,
-      encoder.encode(secret)
+      encoder.encode(secret),
     );
 
     const encryptedSecret = `${Buffer.from(salt).toString("base64")}.${Buffer.from(iv).toString("base64")}.${Buffer.from(encrypted).toString("base64")}`;
@@ -152,7 +150,7 @@ export class KeyManager {
       encoder.encode(passphrase),
       { name: "PBKDF2" },
       false,
-      ["deriveKey"]
+      ["deriveKey"],
     );
 
     const aesKey = await crypto.subtle.deriveKey(
@@ -165,13 +163,13 @@ export class KeyManager {
       keyMaterial,
       { name: "AES-GCM", length: 256 },
       false,
-      ["decrypt"]
+      ["decrypt"],
     );
 
     const decrypted = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: iv as BufferSource },
       aesKey,
-      ciphertext as BufferSource
+      ciphertext as BufferSource,
     );
 
     const secret = new TextDecoder().decode(decrypted);
@@ -190,5 +188,14 @@ export class KeyManager {
       }
     }
     return storedKeys;
+  }
+
+  delete(publicKey: string): boolean {
+    const storageKey = `${STORAGE_PREFIX}${publicKey}`;
+    if (this.storage.getItem(storageKey) === null) {
+      return false;
+    }
+    this.storage.removeItem(storageKey);
+    return true;
   }
 }

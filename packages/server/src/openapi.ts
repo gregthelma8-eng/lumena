@@ -298,6 +298,7 @@ export const openApiSpec = {
                         { $ref: "#/components/schemas/VelocityRule" },
                         { $ref: "#/components/schemas/AllowlistRule" },
                         { $ref: "#/components/schemas/BlocklistRule" },
+                        { $ref: "#/components/schemas/AssetAllowlistRule" },
                       ],
                     },
                   },
@@ -352,6 +353,7 @@ export const openApiSpec = {
                         { $ref: "#/components/schemas/SpendLimitRule" },
                         { $ref: "#/components/schemas/VelocityRule" },
                         { $ref: "#/components/schemas/AllowlistRule" },
+                        { $ref: "#/components/schemas/AssetAllowlistRule" },
                       ],
                     },
                   },
@@ -468,6 +470,18 @@ export const openApiSpec = {
           },
         },
         required: ["type", "destinations"],
+      },
+      AssetAllowlistRule: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["asset_allowlist"] },
+          assets: {
+            type: "array",
+            items: { type: "string" },
+            example: ["native", "USDC:GISSUER..."],
+          },
+        },
+        required: ["type", "assets"],
       },
       MaxOperationsRule: {
         type: "object",

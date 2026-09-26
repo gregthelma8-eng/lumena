@@ -79,4 +79,12 @@ describe("validation schemas", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("validates asset allowlist policy rules", () => {
+    const result = PolicyRequestSchema.safeParse({
+      walletId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+      rules: [{ type: "asset_allowlist", assets: ["native", "USDC:GISSUER"] }],
+    });
+    expect(result.success).toBe(true);
+  });
 });
