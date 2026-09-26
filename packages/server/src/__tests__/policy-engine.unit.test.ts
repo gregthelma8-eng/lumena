@@ -3,6 +3,7 @@ import { PolicyEngine } from "../policy/engine.js";
 import {
   createAllowlistPolicy,
   createBlocklistPolicy,
+  createAssetAllowlistPolicy,
   createSpendLimitPolicy,
   createTimeBoundsPolicy,
   createVelocityPolicy,
@@ -17,9 +18,9 @@ describe("PolicyEngine Multi-Op & Asset Spend Limits", () => {
   it("supports allow-by-default and deny-by-default for wallets without policies", () => {
     const transaction = { operations: [] } as unknown as Transaction;
 
-    expect(
-      new PolicyEngine().evaluate({ walletAddress: walletId, transaction }),
-    ).toEqual({ approved: true });
+    expect(new PolicyEngine().evaluate({ walletAddress: walletId, transaction })).toEqual({
+      approved: true,
+    });
     expect(
       new PolicyEngine({ defaultPolicy: "deny" }).evaluate({
         walletAddress: walletId,
@@ -137,6 +138,30 @@ describe("PolicyEngine Multi-Op & Asset Spend Limits", () => {
 
     const resUsdc = await engine.evaluate({ walletAddress: walletId, transaction: usdcTx });
     expect(resUsdc.approved).toBe(true);
+  });
+
+  it("allows payments only in configured assets", () => {
+    const engine = new PolicyEngine();
+    engine.addPolicy(createAssetAllowlistPolicy(walletId, ["USDC:GISSUER"]));
+
+    const usdcTx = {
+      operations: [
+        {
+          type: "payment",
+          destination: "GDEST",
+          amount: "10",
+          asset: "USDC:GISSUER",
+        },
+      ],
+    } as unknown as Transaction;
+    expect(engine.evaluate({ walletAddress: walletId, transaction: usdcTx }).approved).toBe(true);
+
+    const xlmTx = {
+      operations: [{ type: "payment", destination: "GDEST", amount: "10", asset: "native" }],
+    } as unknown as Transaction;
+    const result = engine.evaluate({ walletAddress: walletId, transaction: xlmTx });
+    expect(result.approved).toBe(false);
+    expect(result.reason).toContain("Asset native is not on the allowlist");
   });
 
   it("enforces per-tx and daily spend limits across multi-op payments of same asset", async () => {

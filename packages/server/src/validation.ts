@@ -39,6 +39,13 @@ const BlocklistRuleSchema = z.object({
     .min(1, "At least one destination is required"),
 });
 
+const AssetAllowlistRuleSchema = z.object({
+  type: z.literal("asset_allowlist"),
+  assets: z
+    .array(z.string().min(1, "asset must not be empty"))
+    .min(1, "At least one asset is required"),
+});
+
 const MaxOperationsRuleSchema = z.object({
   type: z.literal("max_operations"),
   maxOperations: z.number().int().positive("maxOperations must be a positive integer"),
@@ -49,6 +56,7 @@ const PolicyRuleSchema = z.discriminatedUnion("type", [
   VelocityRuleSchema,
   AllowlistRuleSchema,
   BlocklistRuleSchema,
+  AssetAllowlistRuleSchema,
   MaxOperationsRuleSchema,
 ]);
 

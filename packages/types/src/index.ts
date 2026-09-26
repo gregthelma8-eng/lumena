@@ -8,6 +8,7 @@ export type {
   VelocityRule,
   AllowlistRule,
   BlocklistRule,
+  AssetAllowlistRule,
   SessionKeyPolicyRule,
   TimeBoundsRule,
   MaxOperationsRule,
