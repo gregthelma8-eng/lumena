@@ -89,6 +89,36 @@ Submits a signed transaction XDR to the server's `/cosign` endpoint for policy v
 npx @lumen/cli cosign submit "AAAAAgAAA..." G...
 ```
 
+### 9. `lumen webhook create <file.json>`
+Registers a webhook using a JSON configuration file containing `url`, `secret`, and `events`, with optional `id` and `enabled` fields.
+
+```bash
+npx @lumen/cli webhook create ./webhook.json
+```
+
+### 10. `lumen webhook list`
+Lists registered webhooks. The server omits webhook secrets from this response.
+
+```bash
+npx @lumen/cli webhook list
+```
+
+### 11. `lumen webhook delete <id>`
+Unregisters the webhook with the specified ID.
+
+```bash
+npx @lumen/cli webhook delete webhook-id
+```
+
+### 12. `lumen webhook deliveries`
+Lists webhook delivery history.
+
+```bash
+npx @lumen/cli webhook deliveries
+```
+
+All webhook commands accept `--server <url>` to override the configured Lumen server URL and `--json` for machine-readable output.
+
 ---
 
 ## Development
