@@ -10,6 +10,7 @@ export type PolicyRule =
   | VelocityRule
   | AllowlistRule
   | BlocklistRule
+  | AssetAllowlistRule
   | SessionKeyPolicyRule
   | TimeBoundsRule
   | MaxOperationsRule
@@ -37,6 +38,11 @@ export interface AllowlistRule {
 export interface BlocklistRule {
   type: "blocklist";
   destinations: string[];
+}
+
+export interface AssetAllowlistRule {
+  type: "asset_allowlist";
+  assets: string[];
 }
 
 export interface SessionKeyPolicyRule {

@@ -6,6 +6,7 @@ import type {
   VelocityRule,
   AllowlistRule,
   BlocklistRule,
+  AssetAllowlistRule,
   SessionKeyPolicyRule,
   TimeBoundsRule,
   MaxOperationsRule,
@@ -91,6 +92,8 @@ export class PolicyEngine {
         return this.evaluateAllowlist(rule as AllowlistRule, opts);
       case "blocklist":
         return this.evaluateBlocklist(rule as BlocklistRule, opts);
+      case "asset_allowlist":
+        return this.evaluateAssetAllowlist(rule as AssetAllowlistRule, opts);
       case "session_key":
         return this.evaluateSessionKey(rule as SessionKeyPolicyRule, opts);
       case "timebounds":
@@ -255,6 +258,33 @@ export class PolicyEngine {
           return {
             approved: false,
             reason: `Destination ${destination} is on the blocklist`,
+          };
+        }
+      }
+    }
+
+    return { approved: true };
+  }
+
+  private evaluateAssetAllowlist(rule: AssetAllowlistRule, opts: EvaluateOpts): EvaluateResult {
+    for (const op of opts.transaction.operations) {
+      let assets: Array<Asset | undefined> = [];
+      if (op.type === "payment") {
+        assets = [(op as Operation.Payment).asset];
+      } else if (op.type === "pathPaymentStrictSend") {
+        const pathPayment = op as Operation.PathPaymentStrictSend;
+        assets = [pathPayment.sendAsset, pathPayment.destAsset];
+      } else if (op.type === "pathPaymentStrictReceive") {
+        const pathPayment = op as Operation.PathPaymentStrictReceive;
+        assets = [pathPayment.sendAsset, pathPayment.destAsset];
+      }
+
+      for (const asset of assets) {
+        const identifier = this.getAssetIdentifier(asset);
+        if (!rule.assets.some((allowed) => this.getAssetIdentifier(allowed) === identifier)) {
+          return {
+            approved: false,
+            reason: `Asset ${identifier} is not on the allowlist`,
           };
         }
       }

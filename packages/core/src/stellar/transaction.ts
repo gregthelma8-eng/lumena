@@ -1,11 +1,5 @@
-import type {
-  Keypair,
-  Transaction,
-  FeeBumpTransaction,
-  Operation} from "@stellar/stellar-sdk";
-import {
-  TransactionBuilder
-} from "@stellar/stellar-sdk";
+import type { Account, Keypair, Transaction, FeeBumpTransaction, xdr } from "@stellar/stellar-sdk";
+import { TransactionBuilder } from "@stellar/stellar-sdk";
 
 export interface BuildFeeBumpOpts {
   feePayerKeypair: Keypair;
@@ -21,7 +15,7 @@ export function buildFeeBump(opts: BuildFeeBumpOpts): FeeBumpTransaction {
     feePayerKeypair,
     baseFee,
     innerTransaction,
-    networkPassphrase
+    networkPassphrase,
   );
 
   feeBump.sign(feePayerKeypair);
@@ -30,25 +24,19 @@ export function buildFeeBump(opts: BuildFeeBumpOpts): FeeBumpTransaction {
 }
 
 export interface BuildTransactionOpts {
-  sourceAccount: string;
-  operations: Operation[];
+  sourceAccount: Account;
+  operations: xdr.Operation[];
   baseFee?: string;
   networkPassphrase: string;
   timeout?: number;
 }
 
 export function buildTransaction(opts: BuildTransactionOpts): Transaction {
-  const {
-    sourceAccount,
-    operations,
-    baseFee = "100",
-    networkPassphrase,
-    timeout = 180
-  } = opts;
+  const { sourceAccount, operations, baseFee = "100", networkPassphrase, timeout = 180 } = opts;
 
   const builder = new TransactionBuilder(sourceAccount, {
     fee: baseFee,
-    networkPassphrase
+    networkPassphrase,
   });
 
   for (const operation of operations) {

@@ -10,6 +10,7 @@ function createStorage(): KeyStorage {
     },
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
     key: (index) => Array.from(values.keys())[index] ?? null,
   };
 }
@@ -111,6 +112,20 @@ describe("KeyManager", () => {
       const storage = createStorage();
       const manager = new KeyManager(storage);
       expect(manager.list()).toHaveLength(0);
+    });
+  });
+
+  describe("delete", () => {
+    it("removes the stored key and reports whether it existed", async () => {
+      const manager = new KeyManager(createStorage());
+      const stored = await manager.store(manager.generateKeypair(), "test-passphrase");
+
+      expect(manager.delete(stored.publicKey)).toBe(true);
+      expect(manager.list()).toEqual([]);
+      expect(manager.delete(stored.publicKey)).toBe(false);
+      await expect(manager.load(stored.publicKey, "test-passphrase")).rejects.toThrow(
+        `Key not found: ${stored.publicKey}`,
+      );
     });
   });
 
