@@ -11,6 +11,7 @@ export type {
   SessionKeyPolicyRule,
   TimeBoundsRule,
   MaxOperationsRule,
+  FeeLimitRule,
   ContractAllowlistRule,
   PolicyStore,
 } from "./policy.js";

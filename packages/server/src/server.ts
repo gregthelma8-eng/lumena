@@ -139,6 +139,7 @@ export function createServer(opts: ServerOpts): ServerResult {
     sponsorPublicKey: opts.feePayerSigner.publicKey(),
     minBalanceXlm: opts.minSponsorBalance,
     pollIntervalMs: opts.sponsorPollIntervalMs,
+    webhookDispatcher,
   });
 
   const app = express();

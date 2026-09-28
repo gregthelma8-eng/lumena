@@ -9,6 +9,7 @@ import type {
   SessionKeyPolicyRule,
   TimeBoundsRule,
   MaxOperationsRule,
+  FeeLimitRule,
   ContractAllowlistRule,
 } from "@lumen/types";
 import { validateTimeBounds } from "@lumen/core";
@@ -96,6 +97,8 @@ export class PolicyEngine {
         return this.evaluateTimeBounds(rule as TimeBoundsRule, opts);
       case "max_operations":
         return this.evaluateMaxOperations(rule as MaxOperationsRule, opts);
+      case "fee_limit":
+        return this.evaluateFeeLimit(rule as FeeLimitRule, opts);
       case "contract_allowlist":
         return this.evaluateContractAllowlist(rule as ContractAllowlistRule, opts);
       default:
@@ -319,6 +322,14 @@ export class PolicyEngine {
     return { approved: true };
   }
 
+  private evaluateFeeLimit(rule: FeeLimitRule, opts: EvaluateOpts): EvaluateResult {
+    const fee = parseInt((opts.transaction as unknown as { fee: string }).fee, 10);
+    if (fee > rule.maxFeeStroops) {
+      return {
+        approved: false,
+        reason: `Transaction fee exceeds maximum allowed fee limit`,
+      };
+    }
   evaluateContractAllowlist(rule: ContractAllowlistRule, opts: EvaluateOpts): EvaluateResult {
     for (const op of opts.transaction.operations) {
       // Soroban contract invocations have type 'invokeHostFunction'
